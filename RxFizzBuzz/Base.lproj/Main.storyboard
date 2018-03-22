@@ -152,6 +152,7 @@
                         <outlet property="number" destination="38p-El-2fO" id="GR2-XX-a3T"/>
                         <outlet property="plus1" destination="W1T-di-yCe" id="UqJ-pI-Orc"/>
                         <outlet property="plus5" destination="nAG-Jm-iOO" id="W42-Tl-Uyi"/>
+                        <outlet property="point" destination="UQR-oE-vts" id="nub-59-b5g"/>
                         <outlet property="result" destination="1TN-dD-0xo" id="a1Y-GG-OTE"/>
                     </connections>
                 </viewController>

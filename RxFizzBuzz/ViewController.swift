@@ -27,6 +27,7 @@ enum Type: String {
 
 class ViewController: UIViewController {
     
+    @IBOutlet weak var point: UILabel!
     @IBOutlet weak var fizzBuzz: UILabel!
     @IBOutlet weak var number: UILabel!
     @IBOutlet weak var fizz: UILabel!
@@ -115,6 +116,12 @@ class ViewController: UIViewController {
                 return correct == answer
         }.debug("result")
         
+        let pointObservable = resultObservable
+            .map { $0 ? 1: -1}
+            .scan(0) {
+                $0 + $1
+        }
+        
         fizzObservable
             .map { !$0 }
             .bind(to: fizz.rx.isHidden)
@@ -139,6 +146,20 @@ class ViewController: UIViewController {
             .map { $0 ? "Correct!!": "Wrong" }
             .startWith("")
             .bind(to: result.rx.text)
+            .disposed(by: bag)
+        resultObservable
+            .subscribe(onNext: { [weak self] result in
+                if result {
+                    self?.result.textColor = UIColor.red
+                } else {
+                    self?.result.textColor = UIColor.blue
+                }
+        })
+            .disposed(by: bag)
+        
+        pointObservable
+            .map { String($0) }
+            .bind(to: point.rx.text)
             .disposed(by: bag)
 
     }
