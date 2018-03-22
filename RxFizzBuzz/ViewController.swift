@@ -48,7 +48,7 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        // 一定時間ごとに数値を流す
+        // 一定時間ごとのカウンター
         
         let counterObservable = Observable<Int>
             .interval(3.0, scheduler: MainScheduler.instance)
@@ -56,12 +56,14 @@ class ViewController: UIViewController {
             .startWith(0)
             .share()
         
+        // ボタンがタップされるごとのシーケンス
+        
         let plusOneObservable = plus1.rx.tap.map { _ in 1}
         let plusFiveObservable = plus5.rx.tap.map { _ in 5}
         let minusOneObservable = minus1.rx.tap.map { _ in -1}
         let minusFiveObservable = minus5.rx.tap.map { _ in -5}
         
-        // 画面に表示されるカウント
+        // 画面に表示されるシーケンス
         let numberObservable = Observable
             .merge(plusOneObservable,
                    plusFiveObservable,
@@ -71,7 +73,7 @@ class ViewController: UIViewController {
             .scan(0, accumulator: {$0 + $1})
         
         
-        // Fizzが表示されるタイミング
+        // Fizz/Buzz/FizzBuzzの発生するシーケンス
         
         let fizzObservable = numberObservable
             .skipWhile{ $0 == 0}
@@ -89,6 +91,7 @@ class ViewController: UIViewController {
             .startWith(false)
             .share()
         
+        // 現在のFizzBuzz状態のシーケンス
         let collectObservable: Observable<Type> = numberObservable.map{
             if $0 % 3 == 0 && $0 % 15 != 0 {
                 return .Fizz
@@ -101,6 +104,7 @@ class ViewController: UIViewController {
             }
         }
         
+        // ユーザーが入力したFizzBuzz状態のシーケンス
         let answerObservable = Observable<Type>
             .merge(
                 fizzButton.rx.tap.map { _ in Type.Fizz },
@@ -110,18 +114,21 @@ class ViewController: UIViewController {
             .sample(counterObservable)
             .buffer(timeSpan: 3.0, count: 1, scheduler: MainScheduler.instance)
             .map{ $0.count == 1 ? $0[0] : Type.Other }
-
+        
+        // ユーザーの正当のシーケンス
         let resultObservable = Observable<Bool>
             .zip(collectObservable, answerObservable) { correct, answer in
                 return correct == answer
         }.debug("result")
         
+        // 現在のユーザーポイントのシーケンス
         let pointObservable = resultObservable
             .map { $0 ? 1: -1}
             .scan(0) {
                 $0 + $1
         }
         
+        // 以下画面とのバインド
         fizzObservable
             .map { !$0 }
             .bind(to: fizz.rx.isHidden)
