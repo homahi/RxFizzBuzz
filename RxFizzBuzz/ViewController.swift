@@ -48,10 +48,14 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        // 一定時間ごとのカウンター
+        let interval = 2.0
         
-        let counterObservable = Observable<Int>
-            .interval(3.0, scheduler: MainScheduler.instance)
+        // 一定時間ごとのカウンター
+        let originalTimerObservable = Observable<Int>
+            .interval(interval, scheduler: MainScheduler.instance)
+            .share()
+        
+        let counterObservable = originalTimerObservable
             .map{ _ in 1}
             .startWith(0)
             .share()
@@ -111,8 +115,8 @@ class ViewController: UIViewController {
                 buzzButton.rx.tap.map { _ in Type.Buzz},
                 fizzBuzzButton.rx.tap.map { _ in Type.FizzBuzz }
             )
-            .sample(counterObservable)
-            .buffer(timeSpan: 3.0, count: 1, scheduler: MainScheduler.instance)
+            .sample(originalTimerObservable)
+            .buffer(timeSpan: interval, count: 1, scheduler: MainScheduler.instance)
             .map{ $0.count == 1 ? $0[0] : Type.Other }
         
         // ユーザーの正当のシーケンス
