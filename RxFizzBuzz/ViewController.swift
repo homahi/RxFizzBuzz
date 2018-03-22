@@ -56,6 +56,7 @@ class ViewController: UIViewController {
         numberObservable
             .skipWhile{ $0 == 0}
             .map { $0 % 3 == 0 && $0 % 15 != 0 }
+            .distinctUntilChanged()
             .debug("fizz")
             .subscribe(onNext: { [weak self] bool in
                 self?.fizzTrigger.onNext(!bool)
@@ -64,6 +65,7 @@ class ViewController: UIViewController {
         numberObservable
             .skipWhile{$0 == 0}
             .map { $0 % 5 == 0 && $0 % 15 != 0}
+            .distinctUntilChanged()
             .debug("buzz")
             .subscribe(onNext: { [weak self] bool in
                 self?.buzzTrigger.onNext(!bool)
@@ -72,6 +74,7 @@ class ViewController: UIViewController {
         numberObservable
             .skipWhile{$0 == 0}
             .map { $0 % 15 == 0 }
+            .distinctUntilChanged()
             .debug("fizzbuzz")
             .subscribe(onNext: { [weak self] bool in
                 self?.fizzBuzzTrigger.onNext(!bool)
