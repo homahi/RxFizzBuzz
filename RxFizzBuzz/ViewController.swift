@@ -40,6 +40,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var buzzButton: UIButton!
     @IBOutlet weak var fizzBuzzButton: UIButton!
     @IBOutlet weak var answer: UILabel!
+    @IBOutlet weak var start: UIButton!
     @IBOutlet weak var result: UILabel!
     let publishAnswer = PublishSubject<String>()
     
@@ -53,6 +54,7 @@ class ViewController: UIViewController {
         // 一定時間ごとのカウンター
         let originalTimerObservable = Observable<Int>
             .interval(interval, scheduler: MainScheduler.instance)
+            .skipUntil(start.rx.tap)
             .share()
         
         let counterObservable = originalTimerObservable
@@ -117,14 +119,16 @@ class ViewController: UIViewController {
             )
             .sample(originalTimerObservable)
             .buffer(timeSpan: interval, count: 1, scheduler: MainScheduler.instance)
+            .skipUntil(start.rx.tap)
             .map{ $0.count == 1 ? $0[0] : Type.Other }
         
         // ユーザーの正当のシーケンス
         let resultObservable = Observable<Bool>
             .zip(collectObservable, answerObservable) { correct, answer in
                 return correct == answer
-        }.debug("result")
-        
+        }
+            .skipUntil(start.rx.tap)
+
         // 現在のユーザーポイントのシーケンス
         let pointObservable = resultObservable
             .map { $0 ? 1: -1}
