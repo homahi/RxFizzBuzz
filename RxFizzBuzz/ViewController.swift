@@ -60,7 +60,6 @@ class ViewController: UIViewController {
         let counterObservable = originalTimerObservable
             .map{ _ in 1}
             .startWith(0)
-            .share()
 
         // ボタンがタップされるごとのシーケンス
 
@@ -98,7 +97,7 @@ class ViewController: UIViewController {
             } else {
                 return .Other
             }
-        }.share()
+        }
         let level2CollectObservable: Observable<Type> = numberObservable.map{
             if $0 % 3 == 0 && $0 % 15 != 0 {
                 return .Buzz
@@ -109,7 +108,7 @@ class ViewController: UIViewController {
             } else {
                 return .Other
             }
-        }.share()
+        }
         let fizzObservable = correctObservable
             .map{ type -> Bool in
             if type == .Fizz {
@@ -146,7 +145,6 @@ class ViewController: UIViewController {
             .sample(originalTimerObservable)
             .buffer(timeSpan: interval, count: 1, scheduler: MainScheduler.instance)
             .map{ $0.count == 1 ? $0[0] : Type.Other }
-            .share()
 
         // ユーザーの正当のシーケンス
         let resultObservable = Observable<Bool>
@@ -154,7 +152,6 @@ class ViewController: UIViewController {
                 return correct == answer
         }
             .skipUntil(start.rx.tap)
-            .share()
 
         // 現在のユーザーポイントのシーケンス
         let pointObservable = resultObservable
