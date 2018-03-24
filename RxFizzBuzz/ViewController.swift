@@ -77,28 +77,18 @@ class ViewController: UIViewController {
                    minusFiveObservable,
                    counterObservable)
             .scan(0, accumulator: {$0 + $1})
+        .share()
 
 
         // Fizz/Buzz/FizzBuzzの発生するシーケンス
 
-        let fizzObservable = numberObservable
-            .skipWhile{ $0 == 0}
-            .map { $0 % 3 == 0 && $0 % 15 != 0 }
-            .startWith(false)
-            .share()
-        let buzzObservable = numberObservable
-            .skipWhile{$0 == 0}
-            .map { $0 % 5 == 0 && $0 % 15 != 0}
-            .startWith(false)
-            .share()
-        let fizzBuzzObservable = numberObservable
-            .skipWhile{$0 == 0}
-            .map { $0 % 15 == 0 }
-            .startWith(false)
-            .share()
 
-        // 現在のFizzBuzz状態のシーケンス
-        let collectObservable: Observable<Type> = numberObservable.map{
+        // 正解のシーケンス
+        let correctSubject = PublishSubject<Observable<Type>>()
+        let correctObservable = correctSubject.switchLatest().share()
+        
+        
+        let level1CorrectObservable: Observable<Type> = numberObservable.debug("level1").map{
             if $0 % 3 == 0 && $0 % 15 != 0 {
                 return .Fizz
             } else if $0 % 5 == 0 && $0 % 15 != 0 {
@@ -108,7 +98,43 @@ class ViewController: UIViewController {
             } else {
                 return .Other
             }
-        }
+        }.share()
+        let level2CollectObservable: Observable<Type> = numberObservable.map{
+            if $0 % 3 == 0 && $0 % 15 != 0 {
+                return .Buzz
+            } else if $0 % 5 == 0 && $0 % 15 != 0 {
+                return .Fizz
+            } else if $0 % 15 == 0{
+                return .FizzBuzz
+            } else {
+                return .Other
+            }
+        }.share()
+        let fizzObservable = correctObservable
+            .map{ type -> Bool in
+            if type == .Fizz {
+                return true
+            } else {
+                return false
+            }
+        }.startWith(false)
+        
+        let buzzObservable = correctObservable
+            .map{ type -> Bool in
+                if type == .Buzz {
+                    return true
+                } else {
+                    return false
+                }
+            }.startWith(false)
+        let fizzBuzzObservable = correctObservable
+            .map{ type -> Bool in
+                if type == .FizzBuzz {
+                    return true
+                } else {
+                    return false
+                }
+            }.startWith(false)
 
         // ユーザーが入力したFizzBuzz状態のシーケンス
         let answerObservable = Observable<Type>
@@ -119,15 +145,16 @@ class ViewController: UIViewController {
             )
             .sample(originalTimerObservable)
             .buffer(timeSpan: interval, count: 1, scheduler: MainScheduler.instance)
-            .skipUntil(start.rx.tap)
             .map{ $0.count == 1 ? $0[0] : Type.Other }
+            .share()
 
         // ユーザーの正当のシーケンス
         let resultObservable = Observable<Bool>
-            .zip(collectObservable, answerObservable) { correct, answer in
+            .zip(correctObservable, answerObservable) { correct, answer in
                 return correct == answer
         }
             .skipUntil(start.rx.tap)
+            .share()
 
         // 現在のユーザーポイントのシーケンス
         let pointObservable = resultObservable
@@ -135,8 +162,26 @@ class ViewController: UIViewController {
             .scan(0) {
                 $0 + $1
         }
+        
+        // レベルアップイベント
+        let levelChangeObservable = pointObservable.map { (point) -> Bool in
+            if point >= 10 {
+                return true
+            } else {
+                return false
+            }
+        }.distinctUntilChanged().startWith(false)
+        
 
         // 以下画面とのバインド
+        levelChangeObservable.skipWhile{$0 == false}
+            .subscribe(onNext: {
+                if $0 {
+                    correctSubject.onNext(level2CollectObservable)
+                } else {
+                    correctSubject.onNext(level1CorrectObservable)
+                }
+            }).disposed(by: bag)
         fizzObservable
             .map { !$0 }
             .bind(to: fizz.rx.isHidden)
@@ -176,6 +221,10 @@ class ViewController: UIViewController {
             .map { String($0) }
             .bind(to: point.rx.text)
             .disposed(by: bag)
+        
+        start.rx.tap.subscribe(onNext: {
+           correctSubject.onNext(level1CorrectObservable)
+        }).disposed(by: bag)
 
     }
 
